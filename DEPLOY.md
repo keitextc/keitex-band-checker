@@ -68,4 +68,4 @@ The source of truth is `keitex-band-checker/`. When updating:
 
 ## Email contact
 
-Both pages show jesse@keitextc.com in the top nav bar. If your business email is different, update the `topnav` div near the top of both HTML files.
+Both pages show admin@keitextc.com in the top nav bar. If your business email is different, update the `topnav` div near the top of both HTML files.
