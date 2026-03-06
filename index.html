@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KEITEX Telecomms — Carrier Band Compatibility Checker</title>
+<meta name="description" content="KEITEX Telecomms carrier LTE band compatibility research tool for imported Korean and Japanese phones on North American networks.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f5f5;min-height:100vh;
+  -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
+  -webkit-touch-callout:none}
+::selection{background:transparent}
+::-moz-selection{background:transparent}
+img{-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;user-drag:none;pointer-events:none}
+canvas{display:block;image-rendering:auto}
+.topnav{background:#0a3d8f;padding:6px 24px;display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.topnav a{color:rgba(255,255,255,.8);text-decoration:none;font-weight:500}
+.topnav a:hover{color:#fff}
+.topnav span{color:rgba(255,255,255,.5)}
+.hdr{background:#0D47A1;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.hdr-logo{background:#fff;padding:4px 12px;font-weight:800;font-size:18px;color:#0D47A1;letter-spacing:1px}
+.hdr-title{color:#fff;font-weight:700;font-size:18px;letter-spacing:.5px}
+.hdr-sub{color:rgba(255,255,255,.6);font-size:12px}
+.tabs{background:#0D47A1;display:flex;padding-left:24px;gap:0}
+.tab-btn{padding:10px 20px;background:#0D47A1;color:rgba(255,255,255,.7);border:none;cursor:pointer;font-weight:400;font-size:14px;font-family:inherit;border-bottom:3px solid transparent}
+.tab-btn.active{background:#fff;color:#0D47A1;font-weight:700;border-bottom:3px solid #fff}
+.content{padding:24px;max-width:1400px;margin:0 auto}
+.card{background:#fff;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.phone-btn{padding:6px 14px;border:1px solid #e0e0e0;background:#fff;color:#212121;cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s}
+.phone-btn.active{border-color:#1565C0;background:#E3F2FD;color:#0D47A1;font-weight:600}
+.phone-btn small{display:block;font-size:11px;color:#616161;font-weight:400}
+.filter-input{padding:6px 12px;border:1px solid #e0e0e0;font-size:13px;font-family:inherit;width:200px}
+.net-select{padding:6px 10px;border:1px solid #e0e0e0;font-size:13px;font-family:inherit}
+.info-bar{background:#fff;padding:10px 16px;margin-bottom:16px;display:flex;gap:24px;align-items:center;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.canvas-wrap{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:auto;max-height:600px;position:relative}
+.canvas-wrap canvas{min-width:100%}
+.footer{text-align:center;padding:16px 0;font-size:11px;color:#616161;margin-top:16px}
+.footer i{display:block;margin-top:4px;font-style:italic}
+.wm-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:.035}
+.state-detail{background:#fff;padding:20px;margin-top:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.state-detail h3{margin:0 0 16px;color:#0D47A1;font-size:18px}
+.close-btn{background:none;border:1px solid #e0e0e0;padding:4px 12px;cursor:pointer;font-size:12px;font-family:inherit}
+.phone-card{border:1px solid #e0e0e0;padding:12px;flex:1;min-width:200px}
+.phone-card-name{font-weight:700;font-size:14px;color:#0D47A1;margin-bottom:8px}
+.badge{font-weight:700;padding:2px 10px;font-size:13px;display:inline-block;margin-bottom:8px}
+.badge-good{background:#E8F5E9;color:#4CAF50}
+.badge-marginal{background:#FFF3E0;color:#FF9800}
+.badge-poor{background:#FFEBEE;color:#F44336}
+.reason{font-size:12px;color:#616161;margin-bottom:2px}
+.carrier-row{font-size:12px;display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #f5f5f5}
+.src-section h3{color:#0D47A1;font-size:16px;margin:0 0 12px;font-family:inherit}
+.src-section h3+div,.src-section h3~div{margin-bottom:6px;font-size:13px;color:#212121}
+.pct-badge{font-weight:700;padding:2px 8px;font-size:12px;display:inline-block;min-width:48px;text-align:center}
+@media print{body{display:none !important}}
+</style>
+</head>
+<body oncontextmenu="return false" ondragstart="return false" onselectstart="return false" oncopy="return false">
+
+<!-- Watermark overlay -->
+<div class="wm-overlay" id="wmOverlay"></div>
+
+<div class="topnav">
+  <a href="https://keitextc.com">keitextc.com</a>
+  <span>Questions? <a href="mailto:jesse@keitextc.com">jesse@keitextc.com</a></span>
+</div>
+<div class="hdr">
+  <div class="hdr-logo">KTX</div>
+  <div>
+    <div class="hdr-title">KEITEX Telecomms</div>
+    <div class="hdr-sub">Carrier Band Compatibility Checker</div>
+  </div>
+</div>
+
+<div class="tabs" id="tabBar"></div>
+
+<div class="content" id="mainContent"></div>
+
+<script>
+// ==================== ANTI-COPY PROTECTIONS ====================
+(function(){
+  // Disable keyboard shortcuts
+  document.addEventListener('keydown',function(e){
+    if(e.ctrlKey&&(e.key==='u'||e.key==='U'||e.key==='s'||e.key==='S'||e.key==='p'||e.key==='P'))e.preventDefault();
+    if(e.ctrlKey&&e.shiftKey&&(e.key==='i'||e.key==='I'||e.key==='j'||e.key==='J'||e.key==='c'||e.key==='C'))e.preventDefault();
+    if(e.key==='F12')e.preventDefault();
+    if(e.ctrlKey&&(e.key==='c'||e.key==='C'||e.key==='a'||e.key==='A'))e.preventDefault();
+  });
+  // Disable drag
+  document.addEventListener('dragstart',function(e){e.preventDefault()});
+  // Disable copy
+  document.addEventListener('copy',function(e){e.preventDefault()});
+  document.addEventListener('cut',function(e){e.preventDefault()});
+  // Console warning
+  var w=function(){console.log('%c⚠ KEITEX Telecomms','font-size:24px;font-weight:bold;color:#0D47A1');
+    console.log('%cThis data is proprietary research by KEITEX Telecomms. Unauthorized reproduction is prohibited.','font-size:14px;color:#F44336')};
+  w();setInterval(w,30000);
+})();
+
+// ==================== OBFUSCATED DATA ====================
+// Data encoded to prevent casual view-source copying
+var _0x=atob('eyJwIjpbeyJpIjoiZzE2MG4iLCJuIjoiR2FsYXh5IEZvbGRlciAyIiwibSI6IlNNLUcxNjBOIiwibyI6IktvcmVhIiwibCI6WzEsMyw1LDcsOF0sInUiOlsxLDIsNSw4XSwicyI6IkZyZXF1ZW5jeUNoZWNrLmNvbSJ9LHsiaSI6Im0xMjAiLCJuIjoiQUxUIE1JVkUgTTEyMCIsIm0iOiJBVC1NMTIwIiwibyI6IktvcmVhIiwibCI6WzEsMyw1LDcsOF0sInUiOlsxXSwicyI6IkZyZXF1ZW5jeUNoZWNrLmNvbTsgbWFudWZhY3R1cmVyIHNwZWMgc2hlZXQifSx7ImkiOiJtMTQwIiwibiI6IkFMVCBNSVZFIE0xNDAiLCJtIjoiQVQtTTE0MCIsIm8iOiJLb3JlYSIsImwiOlsxLDMsNSw3LDhdLCJ1IjpbMV0sInMiOiJGcmVxdWVuY3lDaGVjay5jb207IERldmljZUF0bGFzIn0seyJpIjoiOTAya2MiLCJuIjoiS3lvY2VyYSA5MDJLQyIsIm0iOiJEaWdubyBLZWl0YWkgMyIsIm8iOiJKYXBhbiIsImwiOlsxLDIsMyw0LDhdLCJ1IjpbMSw0LDhdLCJzIjoiRnJlcXVlbmN5Q2hlY2suY29tOyBTb2Z0QmFuayBKYXBhbiJ9LHsiaSI6Imt5NDJjIiwibiI6Ikt5b2NlcmEgS1ktNDJDIiwibSI6IkRpZ25vIEtlaXRhaSBSIiwibyI6IkphcGFuIiwibCI6WzEsMyw1LDEyXSwidSI6WzEsNCw4XSwicyI6IkZyZXF1ZW5jeUNoZWNrLmNvbTsgYXUgS0RESSBKYXBhbiJ9XX0=');
+var _d=JSON.parse(_0x);
+var phones=_d.p;
+
+var bandFreq={1:"2100",2:"1900",3:"1800",4:"AWS",5:"850",7:"2600",8:"900",12:"700",13:"700",17:"700",25:"1900+",26:"850",29:"700",30:"2300",38:"2600T",41:"2500T",46:"5900T",66:"AWS-e",71:"600"};
+
+var _uc=atob('W3sibiI6IlQtTW9iaWxlIiwidCI6Ik1OTyIsIm5ldCI6IlQtTW9iaWxlIiwiYmQiOlsyLDQsNSwxMiwyNSw0MSw2Niw3MV0sIm5vIjoiUHJpbWFyeS4gQjUgbGltaXRlZC4ifSx7Im4iOiJNZXRybyBieSBULU1vYmlsZSIsInQiOiJGbGFua2VyIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCw1LDEyLDI1LDQxLDY2LDcxXSwibm8iOiJULU1vYmlsZSBvd25lZC4ifSx7Im4iOiJNaW50IE1vYmlsZSIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCw1LDEyLDI1LDQxLDY2LDcxXSwibm8iOiJULU1vYmlsZSBvd25lZC4ifSx7Im4iOiJCb29zdCBNb2JpbGUiLCJ0IjoiTVZOTyIsIm5ldCI6IlQtTW9iaWxlIiwiYmQiOlsyLDQsNSwxMiwyNSwyNiw0MSw2Niw3MV0sIm5vIjoiU29tZSBTSU1zIEFUJlQuIn0seyJuIjoiSGVsbG8gTW9iaWxlIiwidCI6Ik1WTk8iLCJuZXQiOiJULU1vYmlsZSIsImJkIjpbMiw0LDUsMTIsMjUsNDEsNjYsNzFdLCJubyI6IkJ1ZGdldCBwbGFucy4ifSx7Im4iOiJUZWxsbyBNb2JpbGUiLCJ0IjoiTVZOTyIsIm5ldCI6IlQtTW9iaWxlIiwiYmQiOlsyLDQsNSwxMiwyNSw0MSw2Niw3MV0sIm5vIjoiQnVpbGQteW91ci1vd24uIn0seyJuIjoiVVMgTW9iaWxlIiwidCI6Ik1WTk8iLCJuZXQiOiJULU1vYmlsZSIsImJkIjpbMiw0LDUsMTIsMjUsNDEsNjYsNzFdLCJubyI6IkdTTSBvcHRpb24uIn0seyJuIjoiVWx0cmEgTW9iaWxlIiwidCI6Ik1WTk8iLCJuZXQiOiJULU1vYmlsZSIsImJkIjpbMiw0LDUsMTIsMjUsNDEsNjYsNzFdLCJubyI6IkludGwgY2FsbGluZy4ifSx7Im4iOiJTaW1wbGUgTW9iaWxlIiwidCI6Ik1WTk8iLCJuZXQiOiJULU1vYmlsZSIsImJkIjpbMiw0LDUsMTIsMjUsNDEsNjYsNzFdLCJubyI6IiJ9LHsibiI6Ikdvb2dsZSBGaSIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUrIiwiYmQiOlsyLDQsMTIsMjUsMjYsNDEsNjYsNzFdLCJubyI6IlQtTW8rVVNDZWxsLiJ9LHsibiI6IlRleHROb3ciLCJ0IjoiTVZOTyIsIm5ldCI6IlQtTW9iaWxlIiwiYmQiOlsyLDQsNSwxMiwyNSw0MSw2Niw3MV0sIm5vIjoiRnJlZSBwbGFuIGF2YWlsLiJ9LHsibiI6IlJlZCBQb2NrZXQiLCJ0IjoiTVZOTyIsIm5ldCI6IlQtTW9iaWxlIiwiYmQiOlsyLDQsNSwxMiwyNSw0MSw2Niw3MV0sIm5vIjoiTXVsdGktbmV0d29yay4ifSx7Im4iOiJDb25zdW1lciBDZWxsdWxhciIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCw1LDEyLDI1LDQxLDY2LDcxXSwibm8iOiJBQVJQIHBhcnRuZXIuIn0seyJuIjoiTHljYW1vYmlsZSIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCw2Niw3MV0sIm5vIjoiSW50bCBmb2N1cy4ifSx7Im4iOiJUaW5nIE1vYmlsZSIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCwxMl0sIm5vIjoiIn0seyJuIjoiR2VuIE1vYmlsZSIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCw1LDEyLDI1LDQxLDY2LDcxXSwibm8iOiIifSx7Im4iOiJQYXRyaW90IE1vYmlsZSIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCw1LDEyLDI1LDQxLDY2LDcxXSwibm8iOiIifSx7Im4iOiJCb29tISBNb2JpbGUiLCJ0IjoiTVZOTyIsIm5ldCI6IlQtTW9iaWxlIiwiYmQiOlsyLDQsNSwxMiwyNSw0MSw2Niw3MV0sIm5vIjoiIn0seyJuIjoiU3BlZWRUYWxrIiwidCI6Ik1WTk8iLCJuZXQiOiJULU1vYmlsZSIsImJkIjpbMiw0LDUsMTIsMjUsNDEsNjYsNzFdLCJubyI6IklvVC9iYXNpYy4ifSx7Im4iOiJUcmFjZm9uZSAoVE1vKSIsInQiOiJNVk5PIiwibmV0IjoiVC1Nb2JpbGUiLCJiZCI6WzIsNCw1LDEyLDI1LDQxLDY2LDcxXSwibm8iOiJULU1vIFNJTS4ifSx7Im4iOiJBVCZUIiwidCI6Ik1OTyIsIm5ldCI6IkFUJlQiLCJiZCI6WzIsNCw1LDEyLDE3LDI5LDMwLDY2XSwibm8iOiJTdHJpY3Qgd2hpdGVsaXN0LiJ9LHsibiI6IkNyaWNrZXQiLCJ0IjoiTVZOTyIsIm5ldCI6IkFUJlQiLCJiZCI6WzIsNCw1LDE3LDMwXSwibm8iOiJBVCZUIG93bmVkLiJ9LHsibiI6IlZlcml6b24iLCJ0IjoiTU5PIiwibmV0IjoiVmVyaXpvbiIsImJkIjpbMiw0LDUsMTMsNDYsNjZdLCJubyI6IlJlcSBWb0xURSBjZXJ0LiJ9LHsibiI6IlZpc2libGUiLCJ0IjoiTVZOTyIsIm5ldCI6IlZlcml6b24iLCJiZCI6WzIsNCw1LDEzLDY2XSwibm8iOiJWZXJpem9uIE1WTk8uIn0seyJuIjoiVVMgQ2VsbHVsYXIiLCJ0IjoiTU5PIiwibmV0IjoiVVMgQ2VsbHVsYXIiLCJiZCI6WzIsNCw1LDEyXSwibm8iOiJSZWdpb25hbC4ifV0=');
+var usCarriers=JSON.parse(_uc).map(function(c){return{name:c.n,type:c.t,net:c.net,bands:c.bd,notes:c.no}});
+
+var _cc=atob('W3sibiI6IlJvZ2VycyIsInQiOiJNTk8iLCJuZXQiOiJSb2dlcnMiLCJiZCI6WzIsNCw1LDcsMTIsMTcsMjUsMzgsNDYsNjYsNzFdLCJubyI6IkI1K0I3IHN0cm9uZyB1cmJhbi4ifSx7Im4iOiJGaWRvIiwidCI6IkZsYW5rZXIiLCJuZXQiOiJSb2dlcnMiLCJiZCI6WzIsNCw1LDcsMTIsMTcsMjUsMzgsNjYsNzFdLCJubyI6IlJvZ2VycyBtaWQtdGllci4ifSx7Im4iOiJDaGF0ciIsInQiOiJGbGFua2VyIiwibmV0IjoiUm9nZXJzIiwiYmQiOlsyLDQsNSw3LDEyLDE3LDY2LDcxXSwibm8iOiJSb2dlcnMgcHJlcGFpZC4ifSx7Im4iOiJCZWxsIiwidCI6Ik1OTyIsIm5ldCI6IkJlbGwiLCJiZCI6WzIsNCw1LDcsMTIsMTMsMTcsMjUsMjksNDEsNjZdLCJubyI6IlNoYXJlcyB3LyBUZWx1cy4ifSx7Im4iOiJWaXJnaW4gUGx1cyIsInQiOiJGbGFua2VyIiwibmV0IjoiQmVsbCIsImJkIjpbMiw0LDUsNywxMiwxMywxNywyNSwyOSw0MSw2Nl0sIm5vIjoiQmVsbCBtaWQtdGllci4ifSx7Im4iOiJMdWNreSBNb2JpbGUiLCJ0IjoiRmxhbmtlciIsIm5ldCI6IkJlbGwiLCJiZCI6WzIsNCw1LDcsMTIsMTMsMTcsMjldLCJubyI6IkJlbGwgcHJlcGFpZC4ifSx7Im4iOiJUZWx1cyIsInQiOiJNTk8iLCJuZXQiOiJUZWx1cyIsImJkIjpbMiw0LDUsNywxMiwxMywxNywyNSwyOSw0MSw2Nl0sIm5vIjoiU2hhcmVzIHcvIEJlbGwuIn0seyJuIjoiS29vZG8iLCJ0IjoiRmxhbmtlciIsIm5ldCI6IlRlbHVzIiwiYmQiOlsyLDQsNSw3LDEyLDEzLDE3LDI1LDI5LDQxLDY2XSwibm8iOiJUZWx1cyBtaWQtdGllci4ifSx7Im4iOiJQdWJsaWMgTW9iaWxlIiwidCI6IkZsYW5rZXIiLCJuZXQiOiJUZWx1cyIsImJkIjpbMiw0LDUsNywxMiwxMywxNywyOV0sIm5vIjoiVGVsdXMgcHJlcGFpZC4ifSx7Im4iOiJGcmVlZG9tIiwidCI6Ik1OTyIsIm5ldCI6IkZyZWVkb20iLCJiZCI6WzQsNywxMyw0MSw2Nl0sIm5vIjoiT04vQkMvQUIgdXJiYW4uIn0seyJuIjoiU2Fza1RlbCIsInQiOiJNTk8iLCJuZXQiOiJTYXNrVGVsIiwiYmQiOlsyLDQsNSwxMyw2Nl0sIm5vIjoiU2Fza2F0Y2hld2FuIG9ubHkuIn0seyJuIjoiVmlkZW90cm9uIiwidCI6Ik1OTyIsIm5ldCI6IlZpZGVvdHJvbiIsImJkIjpbNCw3LDEzLDY2XSwibm8iOiJRdWViZWMgZm9jdXNlZC4ifSx7Im4iOiJFYXN0bGluayIsInQiOiJNTk8iLCJuZXQiOiJFYXN0bGluayIsImJkIjpbNCw3LDEzLDE3XSwibm8iOiJBdGxhbnRpYyBDYW5hZGEuIn1d');
+var caCarriers=JSON.parse(_cc).map(function(c){return{name:c.n,type:c.t,net:c.net,bands:c.bd,notes:c.no}});
+
+var _st=atob('W3sicyI6IkFsYWJhbWEiLCJvdiI6Ik1vZGVyYXRlIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6Ik1peGVkIn0seyJzIjoiQWxhc2thIiwib3YiOiJXZWFrIiwiYjIiOiJXZWFrIiwiYjQiOiJXZWFrIiwiYjUiOiJOb25lIiwiYjEyIjoiV2VhayIsImI3MSI6IldlYWsiLCJiNDEiOiJOb25lIiwidXIiOiJSdXJhbCJ9LHsicyI6IkFyaXpvbmEiLCJvdiI6IlN0cm9uZyIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJTdHJvbmciLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6IlVyYmFuIn0seyJzIjoiQXJrYW5zYXMiLCJvdiI6Ik1vZGVyYXRlIiwiYjIiOiJNb2RlcmF0ZSIsImI0IjoiTW9kZXJhdGUiLCJiNSI6Ik5vbmUiLCJiMTIiOiJNb2RlcmF0ZSIsImI3MSI6IlN0cm9uZyIsImI0MSI6IldlYWsiLCJ1ciI6IlJ1cmFsIn0seyJzIjoiQ2FsaWZvcm5pYSIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJDb2xvcmFkbyIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJDb25uZWN0aWN1dCIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJEZWxhd2FyZSIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJEQyIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJGbG9yaWRhIiwib3YiOiJTdHJvbmciLCJiMiI6IlN0cm9uZyIsImI0IjoiU3Ryb25nIiwiYjUiOiJOb25lIiwiYjEyIjoiU3Ryb25nIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiU3Ryb25nIiwidXIiOiJVcmJhbiJ9LHsicyI6Ikdlb3JnaWEiLCJvdiI6IlN0cm9uZyIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJTdHJvbmciLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6Ik1peGVkIn0seyJzIjoiSGF3YWlpIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiTW9kZXJhdGUiLCJiNCI6Ik1vZGVyYXRlIiwiYjUiOiJOb25lIiwiYjEyIjoiTW9kZXJhdGUiLCJiNzEiOiJNb2RlcmF0ZSIsImI0MSI6IldlYWsiLCJ1ciI6Ik1peGVkIn0seyJzIjoiSWRhaG8iLCJvdiI6IldlYWsiLCJiMiI6IldlYWsiLCJiNCI6Ik1vZGVyYXRlIiwiYjUiOiJOb25lIiwiYjEyIjoiV2VhayIsImI3MSI6Ik1vZGVyYXRlIiwiYjQxIjoiV2VhayIsInVyIjoiUnVyYWwifSx7InMiOiJJbGxpbm9pcyIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJJbmRpYW5hIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiTW9kZXJhdGUiLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6Ik1peGVkIn0seyJzIjoiSW93YSIsIm92IjoiTW9kZXJhdGUiLCJiMiI6Ik1vZGVyYXRlIiwiYjQiOiJNb2RlcmF0ZSIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6IlJ1cmFsIn0seyJzIjoiS2Fuc2FzIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiTW9kZXJhdGUiLCJiNCI6Ik1vZGVyYXRlIiwiYjUiOiJOb25lIiwiYjEyIjoiTW9kZXJhdGUiLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJNb2RlcmF0ZSIsInVyIjoiUnVyYWwifSx7InMiOiJLZW50dWNreSIsIm92IjoiTW9kZXJhdGUiLCJiMiI6Ik1vZGVyYXRlIiwiYjQiOiJNb2RlcmF0ZSIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6Ik1peGVkIn0seyJzIjoiTG91aXNpYW5hIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJNb2RlcmF0ZSIsImI3MSI6IlN0cm9uZyIsImI0MSI6Ik1vZGVyYXRlIiwidXIiOiJNaXhlZCJ9LHsicyI6Ik1haW5lIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiTW9kZXJhdGUiLCJiNCI6Ik1vZGVyYXRlIiwiYjUiOiJOb25lIiwiYjEyIjoiV2VhayIsImI3MSI6IlN0cm9uZyIsImI0MSI6IldlYWsiLCJ1ciI6IlJ1cmFsIn0seyJzIjoiTWFyeWxhbmQiLCJvdiI6IlN0cm9uZyIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJTdHJvbmciLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6IlVyYmFuIn0seyJzIjoiTWFzc2FjaHVzZXR0cyIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJNaWNoaWdhbiIsIm92IjoiTW9kZXJhdGUiLCJiMiI6IlN0cm9uZyIsImI0IjoiU3Ryb25nIiwiYjUiOiJOb25lIiwiYjEyIjoiTW9kZXJhdGUiLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJNb2RlcmF0ZSIsInVyIjoiTWl4ZWQifSx7InMiOiJNaW5uZXNvdGEiLCJvdiI6Ik1vZGVyYXRlIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6Ik1peGVkIn0seyJzIjoiTWlzc2lzc2lwcGkiLCJvdiI6IldlYWsiLCJiMiI6Ik1vZGVyYXRlIiwiYjQiOiJNb2RlcmF0ZSIsImI1IjoiTm9uZSIsImIxMiI6IldlYWsiLCJiNzEiOiJNb2RlcmF0ZSIsImI0MSI6IldlYWsiLCJ1ciI6IlJ1cmFsIn0seyJzIjoiTWlzc291cmkiLCJvdiI6Ik1vZGVyYXRlIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6Ik1peGVkIn0seyJzIjoiTW9udGFuYSIsIm92IjoiV2VhayIsImIyIjoiV2VhayIsImI0IjoiV2VhayIsImI1IjoiTm9uZSIsImIxMiI6IldlYWsiLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJXZWFrIiwidXIiOiJSdXJhbCJ9LHsicyI6Ik5lYnJhc2thIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiTW9kZXJhdGUiLCJiNCI6Ik1vZGVyYXRlIiwiYjUiOiJOb25lIiwiYjEyIjoiTW9kZXJhdGUiLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJNb2RlcmF0ZSIsInVyIjoiUnVyYWwifSx7InMiOiJOZXZhZGEiLCJvdiI6Ik1vZGVyYXRlIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiU3Ryb25nIiwidXIiOiJNaXhlZCJ9LHsicyI6Ik5ldyBIYW1wc2hpcmUiLCJvdiI6Ik1vZGVyYXRlIiwiYjIiOiJNb2RlcmF0ZSIsImI0IjoiU3Ryb25nIiwiYjUiOiJOb25lIiwiYjEyIjoiTW9kZXJhdGUiLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJNb2RlcmF0ZSIsInVyIjoiTWl4ZWQifSx7InMiOiJOZXcgSmVyc2V5Iiwib3YiOiJTdHJvbmciLCJiMiI6IlN0cm9uZyIsImI0IjoiU3Ryb25nIiwiYjUiOiJOb25lIiwiYjEyIjoiU3Ryb25nIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiU3Ryb25nIiwidXIiOiJVcmJhbiJ9LHsicyI6Ik5ldyBNZXhpY28iLCJvdiI6IldlYWsiLCJiMiI6Ik1vZGVyYXRlIiwiYjQiOiJNb2RlcmF0ZSIsImI1IjoiTm9uZSIsImIxMiI6IldlYWsiLCJiNzEiOiJNb2RlcmF0ZSIsImI0MSI6IldlYWsiLCJ1ciI6IlJ1cmFsIn0seyJzIjoiTmV3IFlvcmsiLCJvdiI6IlN0cm9uZyIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJTdHJvbmciLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6IlVyYmFuIn0seyJzIjoiTm9ydGggQ2Fyb2xpbmEiLCJvdiI6IlN0cm9uZyIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJTdHJvbmciLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6Ik1peGVkIn0seyJzIjoiTm9ydGggRGFrb3RhIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiTW9kZXJhdGUiLCJiNCI6Ik1vZGVyYXRlIiwiYjUiOiJOb25lIiwiYjEyIjoiV2VhayIsImI3MSI6IlN0cm9uZyIsImI0MSI6IldlYWsiLCJ1ciI6IlJ1cmFsIn0seyJzIjoiT2hpbyIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiTWl4ZWQifSx7InMiOiJPa2xhaG9tYSIsIm92IjoiTW9kZXJhdGUiLCJiMiI6Ik1vZGVyYXRlIiwiYjQiOiJNb2RlcmF0ZSIsImI1IjoiTm9uZSIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6Ik1peGVkIn0seyJzIjoiT3JlZ29uIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJNb2RlcmF0ZSIsImI3MSI6IlN0cm9uZyIsImI0MSI6Ik1vZGVyYXRlIiwidXIiOiJNaXhlZCJ9LHsicyI6IlBlbm5zeWx2YW5pYSIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiTWl4ZWQifSx7InMiOiJSaG9kZSBJc2xhbmQiLCJvdiI6IlN0cm9uZyIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJTdHJvbmciLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6IlVyYmFuIn0seyJzIjoiU291dGggQ2Fyb2xpbmEiLCJvdiI6Ik1vZGVyYXRlIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTGltaXRlZCIsImIxMiI6Ik1vZGVyYXRlIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiTW9kZXJhdGUiLCJ1ciI6Ik1peGVkIn0seyJzIjoiU291dGggRGFrb3RhIiwib3YiOiJXZWFrIiwiYjIiOiJXZWFrIiwiYjQiOiJNb2RlcmF0ZSIsImI1IjoiTm9uZSIsImIxMiI6IldlYWsiLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJXZWFrIiwidXIiOiJSdXJhbCJ9LHsicyI6IlRlbm5lc3NlZSIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiTWl4ZWQifSx7InMiOiJUZXhhcyIsIm92IjoiU3Ryb25nIiwiYjIiOiJTdHJvbmciLCJiNCI6IlN0cm9uZyIsImI1IjoiTm9uZSIsImIxMiI6IlN0cm9uZyIsImI3MSI6IlN0cm9uZyIsImI0MSI6IlN0cm9uZyIsInVyIjoiVXJiYW4ifSx7InMiOiJVdGFoIiwib3YiOiJTdHJvbmciLCJiMiI6IlN0cm9uZyIsImI0IjoiU3Ryb25nIiwiYjUiOiJOb25lIiwiYjEyIjoiTW9kZXJhdGUiLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6Ik1peGVkIn0seyJzIjoiVmVybW9udCIsIm92IjoiV2VhayIsImIyIjoiV2VhayIsImI0IjoiTW9kZXJhdGUiLCJiNSI6Ik5vbmUiLCJiMTIiOiJXZWFrIiwiYjcxIjoiTW9kZXJhdGUiLCJiNDEiOiJXZWFrIiwidXIiOiJSdXJhbCJ9LHsicyI6IlZpcmdpbmlhIiwib3YiOiJTdHJvbmciLCJiMiI6IlN0cm9uZyIsImI0IjoiU3Ryb25nIiwiYjUiOiJOb25lIiwiYjEyIjoiU3Ryb25nIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiU3Ryb25nIiwidXIiOiJNaXhlZCJ9LHsicyI6Ildhc2hpbmd0b24iLCJvdiI6IlN0cm9uZyIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJTdHJvbmciLCJiNzEiOiJTdHJvbmciLCJiNDEiOiJTdHJvbmciLCJ1ciI6IlVyYmFuIn0seyJzIjoiV2VzdCBWaXJnaW5pYSIsIm92IjoiV2VhayIsImIyIjoiV2VhayIsImI0IjoiV2VhayIsImI1IjoiTm9uZSIsImIxMiI6IldlYWsiLCJiNzEiOiJNb2RlcmF0ZSIsImI0MSI6IldlYWsiLCJ1ciI6IlJ1cmFsIn0seyJzIjoiV2lzY29uc2luIiwib3YiOiJNb2RlcmF0ZSIsImIyIjoiU3Ryb25nIiwiYjQiOiJTdHJvbmciLCJiNSI6Ik5vbmUiLCJiMTIiOiJNb2RlcmF0ZSIsImI3MSI6IlN0cm9uZyIsImI0MSI6Ik1vZGVyYXRlIiwidXIiOiJNaXhlZCJ9LHsicyI6Ild5b21pbmciLCJvdiI6IldlYWsiLCJiMiI6IldlYWsiLCJiNCI6IldlYWsiLCJiNSI6Ik5vbmUiLCJiMTIiOiJXZWFrIiwiYjcxIjoiU3Ryb25nIiwiYjQxIjoiV2VhayIsInVyIjoiUnVyYWwifV0=');
+var usStates=JSON.parse(_st);
+
+// ==================== STATE ====================
+var currentTab='us';
+var currentPhone='g160n';
+var filterText='';
+var netFilter='All';
+var selectedState=null;
+
+// ==================== HELPERS ====================
+function getPhone(id){return phones.find(function(p){return p.i===id})}
+function getMatch(phoneLte,carrierBands){
+  var m=carrierBands.filter(function(b){return phoneLte.indexOf(b)!==-1}).length;
+  var t=carrierBands.length;
+  return{matched:m,total:t,pct:t>0?Math.round(m/t*100):0};
+}
+function getAllBands(carriers){
+  var s={};carriers.forEach(function(c){c.bands.forEach(function(b){s[b]=1})});
+  return Object.keys(s).map(Number).sort(function(a,b){return a-b});
+}
+
+// ==================== WATERMARK ====================
+function drawWatermark(){
+  var overlay=document.getElementById('wmOverlay');
+  overlay.innerHTML='';
+  var cvs=document.createElement('canvas');
+  cvs.width=window.innerWidth;cvs.height=window.innerHeight;
+  var ctx=cvs.getContext('2d');
+  ctx.font='bold 28px "Segoe UI", sans-serif';
+  ctx.fillStyle='#0D47A1';
+  ctx.globalAlpha=1;
+  var text='KEITEX TELECOMMS';
+  for(var y=40;y<cvs.height;y+=180){
+    for(var x=-100;x<cvs.width;x+=350){
+      ctx.save();ctx.translate(x,y);ctx.rotate(-0.35);ctx.fillText(text,0,0);ctx.restore();
+    }
+  }
+  overlay.appendChild(cvs);
+}
+drawWatermark();
+window.addEventListener('resize',drawWatermark);
+
+// ==================== CANVAS TABLE RENDERER ====================
+var DPR=window.devicePixelRatio||1;
+var ROW_H=32;var HDR_H=40;var FONT='13px "Segoe UI", system-ui, sans-serif';var HDR_FONT='bold 12px "Segoe UI", system-ui, sans-serif';
+
+function renderCarrierCanvas(carriers,phoneLte){
+  var allBands=getAllBands(carriers);
+  var filtered=carriers.filter(function(c){
+    if(filterText&&c.name.toLowerCase().indexOf(filterText.toLowerCase())===-1)return false;
+    if(netFilter!=='All'&&c.net!==netFilter)return false;
+    return true;
+  });
+
+  var cols=[
+    {label:'Carrier',w:140},{label:'Type',w:65},{label:'Network',w:85}
+  ];
+  allBands.forEach(function(b){cols.push({label:'B'+b,sub:bandFreq[b]||'',w:55,band:b})});
+  cols.push({label:'Match',w:60});
+  cols.push({label:'Notes',w:130});
+
+  var totalW=cols.reduce(function(s,c){return s+c.w},0);
+  var totalH=HDR_H+filtered.length*ROW_H+2;
+
+  var cvs=document.createElement('canvas');
+  cvs.width=totalW*DPR;cvs.height=totalH*DPR;
+  cvs.style.width=totalW+'px';cvs.style.height=totalH+'px';
+  var ctx=cvs.getContext('2d');
+  ctx.scale(DPR,DPR);
+
+  // Header
+  ctx.fillStyle='#1565C0';ctx.fillRect(0,0,totalW,HDR_H);
+  ctx.font=HDR_FONT;ctx.fillStyle='#fff';ctx.textBaseline='middle';
+  var x=0;
+  cols.forEach(function(c){
+    ctx.fillStyle='#fff';ctx.font=HDR_FONT;
+    if(c.sub!==undefined){
+      ctx.fillText(c.label,x+4,HDR_H/2-6);
+      ctx.font='10px "Segoe UI", sans-serif';ctx.globalAlpha=0.7;
+      ctx.fillText(c.sub,x+4,HDR_H/2+8);ctx.globalAlpha=1;
+    }else{
+      ctx.fillText(c.label,x+4,HDR_H/2);
+    }
+    x+=c.w;
+  });
+
+  // Rows
+  filtered.forEach(function(c,i){
+    var y=HDR_H+i*ROW_H;
+    ctx.fillStyle=i%2===0?'#fff':'#f5f5f5';ctx.fillRect(0,y,totalW,ROW_H);
+    ctx.strokeStyle='#e0e0e0';ctx.beginPath();ctx.moveTo(0,y+ROW_H);ctx.lineTo(totalW,y+ROW_H);ctx.stroke();
+
+    var m=getMatch(phoneLte,c.bands);
+    var cx=0;
+    cols.forEach(function(col,ci){
+      ctx.font=FONT;ctx.textBaseline='middle';
+      var ty=y+ROW_H/2;
+      if(ci===0){ctx.fillStyle='#212121';ctx.font='bold '+FONT;ctx.fillText(c.name,cx+4,ty)}
+      else if(ci===1){ctx.fillStyle='#212121';ctx.fillText(c.type,cx+4,ty)}
+      else if(ci===2){ctx.fillStyle='#212121';ctx.fillText(c.net,cx+4,ty)}
+      else if(col.band!==undefined){
+        var band=col.band;
+        var carrierHas=c.bands.indexOf(band)!==-1;
+        var phoneHas=phoneLte.indexOf(band)!==-1;
+        if(carrierHas&&phoneHas){
+          ctx.fillStyle='#E8F5E9';ctx.fillRect(cx,y,col.w,ROW_H);
+          ctx.fillStyle='#4CAF50';ctx.font='bold 11px "Segoe UI", sans-serif';ctx.fillText('BOTH',cx+8,ty);
+        }else if(carrierHas){
+          ctx.fillStyle='#FFEBEE';ctx.fillRect(cx,y,col.w,ROW_H);
+          ctx.fillStyle='#F44336';ctx.font='11px "Segoe UI", sans-serif';ctx.fillText('MISS',cx+8,ty);
+        }
+      }else if(col.label==='Match'){
+        var bg=m.pct>=40?'#E8F5E9':m.pct>=12?'#FFF3E0':'#FFEBEE';
+        var fg=m.pct>=40?'#4CAF50':m.pct>=12?'#FF9800':'#F44336';
+        ctx.fillStyle=bg;ctx.fillRect(cx+2,y+4,col.w-4,ROW_H-8);
+        ctx.fillStyle=fg;ctx.font='bold 12px "Segoe UI", sans-serif';ctx.textAlign='center';
+        ctx.fillText(m.pct+'%',cx+col.w/2,ty);ctx.textAlign='left';
+      }else if(col.label==='Notes'){
+        ctx.fillStyle='#616161';ctx.font='12px "Segoe UI", sans-serif';ctx.fillText(c.notes||'',cx+4,ty);
+      }
+      cx+=col.w;
+    });
+  });
+
+  return{canvas:cvs,count:filtered.length};
+}
+
+function renderStateCanvas(states,phoneLte){
+  var cols=[
+    {label:'State',w:130},{label:'T-Mo Overall',w:90},
+    {label:'B2 (1900)',w:85},{label:'B4/66 (AWS)',w:85},{label:'B5 (850)',w:75},
+    {label:'B12 (700)',w:80},{label:'B71 (600)',w:80},{label:'B41 (2500)',w:85},
+    {label:'Density',w:70}
+  ];
+  var totalW=cols.reduce(function(s,c){return s+c.w},0);
+  var totalH=HDR_H+states.length*ROW_H+2;
+
+  var cvs=document.createElement('canvas');
+  cvs.width=totalW*DPR;cvs.height=totalH*DPR;
+  cvs.style.width=totalW+'px';cvs.style.height=totalH+'px';
+  var ctx=cvs.getContext('2d');ctx.scale(DPR,DPR);
+
+  // Header
+  ctx.fillStyle='#1565C0';ctx.fillRect(0,0,totalW,HDR_H);
+  ctx.font=HDR_FONT;ctx.fillStyle='#fff';ctx.textBaseline='middle';
+  var hx=0;cols.forEach(function(c){ctx.fillText(c.label,hx+4,HDR_H/2);hx+=c.w});
+
+  // Rows
+  var ratingColor=function(r){return r==='Strong'?'#4CAF50':r==='Moderate'||r==='Limited'?'#FF9800':r==='Weak'?'#F44336':'#9E9E9E'};
+  states.forEach(function(st,i){
+    var y=HDR_H+i*ROW_H;
+    var isSelected=selectedState===st.s;
+    ctx.fillStyle=isSelected?'#E3F2FD':i%2===0?'#fff':'#f5f5f5';
+    ctx.fillRect(0,y,totalW,ROW_H);
+    ctx.strokeStyle='#e0e0e0';ctx.beginPath();ctx.moveTo(0,y+ROW_H);ctx.lineTo(totalW,y+ROW_H);ctx.stroke();
+
+    var ty=y+ROW_H/2;var cx=0;
+    var vals=[st.s,st.ov,st.b2,st.b4,st.b5,st.b12,st.b71,st.b41,st.ur];
+    cols.forEach(function(col,ci){
+      ctx.font=FONT;ctx.textBaseline='middle';
+      if(ci===0){
+        ctx.fillStyle=isSelected?'#0D47A1':'#212121';ctx.font='bold '+FONT;
+        ctx.fillText(vals[ci],cx+4,ty);
+      }else if(ci>=1&&ci<=7){
+        var r=vals[ci];
+        // Dot
+        ctx.fillStyle=ratingColor(r);
+        ctx.beginPath();ctx.arc(cx+12,ty,4,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#212121';ctx.font='12px "Segoe UI", sans-serif';
+        ctx.fillText(r,cx+20,ty);
+      }else{
+        ctx.fillStyle='#212121';ctx.fillText(vals[ci],cx+4,ty);
+      }
+      cx+=col.w;
+    });
+  });
+
+  return{canvas:cvs,rowH:ROW_H,hdrH:HDR_H,totalW:totalW};
+}
+
+// ==================== RENDER ====================
+function render(){
+  var content=document.getElementById('mainContent');
+  var tabBar=document.getElementById('tabBar');
+  var ph=getPhone(currentPhone);
+
+  // Tabs
+  var tabs=[{id:'us',label:'US Carriers'},{id:'ca',label:'Canada Carriers'},{id:'states',label:'US States'},{id:'sources',label:'Sources'},{id:'ca-deep',label:'\u{1F1E8}\u{1F1E6} Canada Deep Dive',href:'canada.html'}];
+  tabBar.innerHTML='';
+  tabs.forEach(function(t){
+    if(t.href){
+      var a=document.createElement('a');a.className='tab-btn';a.href=t.href;a.textContent=t.label;
+      a.style.textDecoration='none';a.style.color='rgba(255,255,255,0.9)';a.style.fontWeight='600';
+      tabBar.appendChild(a);
+    }else{
+      var btn=document.createElement('button');
+      btn.className='tab-btn'+(currentTab===t.id?' active':'');
+      btn.textContent=t.label;
+      btn.onclick=function(){currentTab=t.id;netFilter='All';filterText='';selectedState=null;render()};
+      tabBar.appendChild(btn);
+    }
+  });
+
+  var html='';
+
+  // Phone selector
+  if(currentTab!=='sources'){
+    html+='<div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">';
+    html+='<span style="font-weight:600;font-size:14px;color:#212121">Select Phone:</span>';
+    phones.forEach(function(p){
+      var active=currentPhone===p.i;
+      html+='<button class="phone-btn'+(active?' active':'')+'" data-phone="'+p.i+'">'+p.n+'<small>'+p.m+'</small></button>';
+    });
+    html+='</div>';
+
+    // Info bar
+    html+='<div class="info-bar">';
+    html+='<span><b>LTE Bands:</b> '+ph.l.map(function(b){return'B'+b}).join(', ')+'</span>';
+    html+='<span><b>UMTS:</b> '+ph.u.map(function(b){return'B'+b}).join(', ')+'</span>';
+    html+='<span><b>Origin:</b> '+ph.o+'</span>';
+    html+='<span style="color:#616161">Source: '+ph.s+'</span>';
+    html+='</div>';
+  }
+
+  // Carrier tables
+  if(currentTab==='us'||currentTab==='ca'){
+    var carriers=currentTab==='us'?usCarriers:caCarriers;
+    var networks=['All'];var seen={};
+    carriers.forEach(function(c){if(!seen[c.net]){seen[c.net]=1;networks.push(c.net)}});
+
+    html+='<div class="card" style="display:flex;gap:16px;align-items:center">';
+    html+='<input class="filter-input" placeholder="Search carrier..." id="filterInput" value="'+filterText+'">';
+    html+='<span style="font-size:13px;font-weight:600">Network:</span>';
+    html+='<select class="net-select" id="netSelect">';
+    networks.forEach(function(n){html+='<option value="'+n+'"'+(netFilter===n?' selected':'')+'>'+n+'</option>'});
+    html+='</select>';
+
+    var filtered=carriers.filter(function(c){
+      if(filterText&&c.name.toLowerCase().indexOf(filterText.toLowerCase())===-1)return false;
+      if(netFilter!=='All'&&c.net!==netFilter)return false;return true;
+    });
+    html+='<span style="font-size:12px;color:#616161;margin-left:auto">'+filtered.length+' carriers shown</span>';
+    html+='</div>';
+
+    html+='<div class="canvas-wrap" id="carrierCanvasWrap"></div>';
+  }
+
+  // States
+  if(currentTab==='states'){
+    html+='<div class="card" style="font-size:13px;color:#616161">Click any state row to see per-phone breakdown below.</div>';
+    html+='<div class="canvas-wrap" id="stateCanvasWrap" style="cursor:pointer"></div>';
+
+    if(selectedState){
+      var st=usStates.find(function(s){return s.s===selectedState});
+      if(st){
+        var bandMap={b2:2,b4:4,b5:5,b12:12,b71:71,b41:41};
+        var strongBands=[];var modBands=[];
+        ['b2','b4','b5','b12','b71','b41'].forEach(function(k){
+          if(st[k]==='Strong')strongBands.push(bandMap[k]);
+          else if(st[k]==='Moderate'||st[k]==='Limited')modBands.push(bandMap[k]);
+        });
+        var availBands=strongBands.concat(modBands);
+        var tmoCarriers=usCarriers.filter(function(c){return c.net==='T-Mobile'||c.net==='T-Mobile+'});
+
+        html+='<div class="state-detail">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center">';
+        html+='<h3>'+selectedState+' — Carrier Recommendations</h3>';
+        html+='<button class="close-btn" id="closeState">Close</button></div>';
+        html+='<div style="margin:16px 0;padding:10px 14px;background:#f5f5f5;font-size:13px">';
+        html+='<b>T-Mobile coverage:</b> '+st.ov+' | <b>Density:</b> '+st.ur;
+        html+=' | <b>Strong bands:</b> '+(strongBands.length?strongBands.map(function(b){return'B'+b}).join(', '):'None');
+        html+=' | <b>Moderate bands:</b> '+(modBands.length?modBands.map(function(b){return'B'+b}).join(', '):'None');
+        html+='</div>';
+
+        html+='<div style="display:flex;gap:12px;flex-wrap:wrap">';
+        phones.forEach(function(p){
+          var phoneHits=availBands.filter(function(b){return p.l.indexOf(b)!==-1});
+          var strongHits=strongBands.filter(function(b){return p.l.indexOf(b)!==-1});
+          var score=strongHits.length*2+(phoneHits.length-strongHits.length);
+          var maxScore=strongBands.length*2+modBands.length;
+          var pct=maxScore>0?Math.round(score/maxScore*100):0;
+          var rating=pct>=50?'Good':pct>=20?'Marginal':'Poor';
+          var badgeCls=rating==='Good'?'badge-good':rating==='Marginal'?'badge-marginal':'badge-poor';
+
+          var reasons=[];
+          if(strongHits.length>0)reasons.push('Hits strong bands: '+strongHits.map(function(b){return'B'+b}).join(', '));
+          if(phoneHits.length===0)reasons.push('No band overlap in this state');
+          if(p.l.indexOf(12)===-1)reasons.push('Missing B12 (indoor/rural)');
+          if(p.l.indexOf(71)===-1)reasons.push('Missing B71 (rural backbone)');
+          if(p.l.indexOf(5)!==-1&&st.b5!=='None')reasons.push('B5 overlap helps');
+
+          var topCarriers=tmoCarriers.slice(0,5).map(function(c){
+            var m=getMatch(p.l,c.bands);return{name:c.name,type:c.type,pct:m.pct};
+          }).sort(function(a,b){return b.pct-a.pct});
+
+          html+='<div class="phone-card">';
+          html+='<div class="phone-card-name">'+p.n+'</div>';
+          html+='<div class="badge '+badgeCls+'">'+rating+' ('+pct+'%)</div>';
+          reasons.forEach(function(r){html+='<div class="reason">- '+r+'</div>'});
+          html+='<div style="font-size:12px;font-weight:600;margin:8px 0 4px">Top carriers:</div>';
+          topCarriers.forEach(function(tc){
+            var bg2=tc.pct>=40?'#E8F5E9':tc.pct>=12?'#FFF3E0':'#FFEBEE';
+            var fg2=tc.pct>=40?'#4CAF50':tc.pct>=12?'#FF9800':'#F44336';
+            html+='<div class="carrier-row"><span>'+tc.name+' <span style="color:#616161">('+tc.type+')</span></span>';
+            html+='<span class="pct-badge" style="background:'+bg2+';color:'+fg2+'">'+tc.pct+'%</span></div>';
+          });
+          html+='</div>';
+        });
+        html+='</div></div>';
+      }
+    }
+  }
+
+  // Sources
+  if(currentTab==='sources'){
+    html+='<div class="card src-section">';
+    html+='<h3>Phone Band Sources</h3>';
+    phones.forEach(function(p){
+      html+='<div><b>'+p.n+' ('+p.m+'):</b> LTE '+p.l.map(function(b){return'B'+b}).join(', ')+' — Source: '+p.s+'</div>';
+    });
+    html+='<h3 style="margin-top:20px">Carrier Band Sources</h3>';
+    ['T-Mobile US: Official carrier documentation; FrequencyCheck.com',
+     'All T-Mobile MVNOs share identical tower infrastructure.',
+     'AT&T: Official carrier documentation; FrequencyCheck.com',
+     'Verizon: Official carrier documentation; FrequencyCheck.com',
+     'Rogers: Official carrier documentation; FrequencyCheck.com',
+     'Bell: Official carrier documentation; FrequencyCheck.com',
+     'Telus: Official carrier documentation; FrequencyCheck.com',
+     'Freedom / SaskTel / Eastlink / Videotron: Official carrier documentation'
+    ].forEach(function(s){html+='<div>'+s+'</div>'});
+    html+='<h3 style="margin-top:20px">Coverage Data Sources</h3>';
+    ['US state coverage: T-Mobile coverage map (t-mobile.com/coverage/coverage-map)',
+     'T-Mobile band analysis: OneSDR.com/t-mobile-frequency-bands/',
+     'US carrier bands: MyAmplifiers.com; Kimovil.com; PhoneArena.com',
+     'Canada coverage: WhistleOut.ca; comparecellular.ca; planhub.ca',
+     'Canada bands: SmartphonePlans.ca; FrequencyCheck.com',
+     'Telus covers 99% of Canadian population. Bell/Telus share towers.',
+     'Rogers covers 97% of Canadian population.',
+     'Data compiled March 2026.'
+    ].forEach(function(s){html+='<div>'+s+'</div>'});
+    html+='</div>';
+  }
+
+  // Footer
+  html+='<div class="footer">';
+  html+='KEITEX Telecomms — Carrier Band Compatibility Checker — Data compiled March 2026';
+  html+='<i>Prepared by KEITEX Research Department — Senior Data Analyst Jesse Ashida</i>';
+  html+='</div>';
+
+  content.innerHTML=html;
+
+  // Bind phone buttons
+  document.querySelectorAll('[data-phone]').forEach(function(btn){
+    btn.onclick=function(){currentPhone=this.getAttribute('data-phone');render()};
+  });
+
+  // Bind filter
+  var filterInput=document.getElementById('filterInput');
+  if(filterInput){
+    filterInput.oninput=function(){filterText=this.value;renderCarrierCanvasInPlace()};
+    filterInput.focus();filterInput.setSelectionRange(filterText.length,filterText.length);
+  }
+  var netSelect=document.getElementById('netSelect');
+  if(netSelect)netSelect.onchange=function(){netFilter=this.value;renderCarrierCanvasInPlace()};
+
+  // Bind close
+  var closeBtn=document.getElementById('closeState');
+  if(closeBtn)closeBtn.onclick=function(){selectedState=null;render()};
+
+  // Render canvases
+  renderCarrierCanvasInPlace();
+  renderStateCanvasInPlace();
+}
+
+function renderCarrierCanvasInPlace(){
+  var wrap=document.getElementById('carrierCanvasWrap');
+  if(!wrap)return;
+  var carriers=currentTab==='us'?usCarriers:caCarriers;
+  var ph=getPhone(currentPhone);
+  var result=renderCarrierCanvas(carriers,ph.l);
+  wrap.innerHTML='';
+  wrap.appendChild(result.canvas);
+
+  // Update count
+  var countSpan=document.querySelector('.card span[style*="margin-left:auto"]');
+  if(countSpan)countSpan.textContent=result.count+' carriers shown';
+}
+
+function renderStateCanvasInPlace(){
+  var wrap=document.getElementById('stateCanvasWrap');
+  if(!wrap)return;
+  var ph=getPhone(currentPhone);
+  var result=renderStateCanvas(usStates,ph.l);
+  wrap.innerHTML='';
+  wrap.appendChild(result.canvas);
+
+  // Click handler on canvas
+  result.canvas.onclick=function(e){
+    var rect=result.canvas.getBoundingClientRect();
+    var y=e.clientY-rect.top;
+    if(y<result.hdrH)return;
+    var idx=Math.floor((y-result.hdrH)/result.rowH);
+    if(idx>=0&&idx<usStates.length){
+      var clicked=usStates[idx].s;
+      selectedState=selectedState===clicked?null:clicked;
+      render();
+    }
+  };
+}
+
+// Init
+render();
+
+// DevTools detection (debugger-based)
+(function(){
+  var devOpen=false;
+  var el=new Image();
+  Object.defineProperty(el,'id',{get:function(){devOpen=true}});
+  setInterval(function(){
+    devOpen=false;
+    console.log('%c','',el);
+    if(devOpen){
+      document.body.style.opacity='0.15';
+      document.body.style.pointerEvents='none';
+    }else{
+      document.body.style.opacity='1';
+      document.body.style.pointerEvents='auto';
+    }
+  },2000);
+})();
+</script>
+</body>
+</html>
